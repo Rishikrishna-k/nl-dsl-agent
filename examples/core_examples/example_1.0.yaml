@@ -1,0 +1,5 @@
+examples:
+- prompt: core prompt 1
+  response: core response 1
+- prompt: core prompt 2
+  response: core response 2

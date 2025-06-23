@@ -1,0 +1,5 @@
+examples:
+- prompt: rag prompt 1
+  response: rag response 1
+- prompt: rag prompt 2
+  response: rag response 2
