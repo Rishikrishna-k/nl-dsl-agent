@@ -1,48 +1,37 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from pydantic import BaseModel
-from config.settings import get_settings, Settings
-from app.openrouter_client import get_openrouter_client
+from app.main_workflow import run_workflow
 
-app = FastAPI(title="DSL LangChain API", version="0.1.0")
+app = FastAPI(title="DSL Code Generator API")
 
-class GenerateRequest(BaseModel):
-    prompt: str
+class QueryRequest(BaseModel):
+    query: str
 
-class GenerateResponse(BaseModel):
+class QueryResponse(BaseModel):
     result: str
-    metadata: dict | None = None
 
-@app.get("/")
-def root():
-    return {"message": "Welcome to the DSL LangChain API!"}
+@app.post("/generate", response_model=QueryResponse)
+async def generate_dsl(request: QueryRequest):
+    """Generate DSL code based on user query"""
+    result = run_workflow(request.query)
+    return QueryResponse(result=result.get("codegen_result", "Error: No result generated"))
+
+@app.get("/test")
+async def test_workflow():
+    """Test endpoint with hardcoded query"""
+    hardcoded_query = "Create a DSL rule to validate that a patient has active insurance coverage"
+    result = run_workflow(hardcoded_query)
+    return {
+        "query": hardcoded_query,
+        "result": result.get("codegen_result", "Error: No result generated"),
+        "full_response": result
+    }
 
 @app.get("/health")
-def health():
-    return {"status": "ok", "version": "0.1.0"}
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "DSL Code Generator"}
 
-@app.post("/generate", response_model=GenerateResponse)
-def generate(
-    request: GenerateRequest,
-    settings: Settings = Depends(get_settings)
-):
-    """
-    Generate code or text based on the input prompt using OpenRouter and the configured model.
-    """
-    client = get_openrouter_client()
-    model = settings.LLM_MODEL
-    try:
-        completion = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "user", "content": request.prompt}
-            ]
-        )
-        result = completion.choices[0].message.content
-    except Exception as e:
-        result = f"[ERROR] {str(e)}"
-    return GenerateResponse(
-        result=result,
-        metadata={
-            "model": model
-        }
-    ) 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 

@@ -1,5 +1,242 @@
 examples:
-- prompt: core prompt 1
-  response: core response 1
-- prompt: core prompt 2
-  response: core response 2
+  - prompt: "Create a DSL rule to validate that medical claim amounts are within acceptable ranges"
+    description: "Medical claim amount validation rule for insurance processing"
+    dsl_pattern: |
+      RULE claim_amount_validation
+      WHEN claim.amount > 10000
+      THEN REJECT "Claim amount exceeds maximum allowed limit"
+      END
+    response: |
+      ```dsl
+      RULE claim_amount_validation
+      WHEN claim.amount > 10000
+      THEN REJECT "Claim amount exceeds maximum allowed limit"
+      END
+      ```
+    category: "validation"
+    complexity: "basic"
+
+  - prompt: "Generate a DSL rule to check if patient has valid insurance coverage"
+    description: "Insurance coverage validation for medical claims"
+    dsl_pattern: |
+      RULE insurance_coverage_check
+      WHEN patient.insurance_status == "active" AND patient.coverage_end_date > current_date
+      THEN APPROVE
+      ELSE REJECT "Insurance coverage expired or inactive"
+      END
+    response: |
+      ```dsl
+      RULE insurance_coverage_check
+      WHEN patient.insurance_status == "active" AND patient.coverage_end_date > current_date
+      THEN APPROVE
+      ELSE REJECT "Insurance coverage expired or inactive"
+      END
+      ```
+    category: "validation"
+    complexity: "basic"
+
+  - prompt: "Create a DSL rule to validate diagnosis codes against ICD-10 standards"
+    description: "ICD-10 diagnosis code validation for medical claims"
+    dsl_pattern: |
+      RULE icd10_validation
+      WHEN diagnosis.code MATCHES "^[A-Z][0-9]{2}\.[0-9X]{1,4}$"
+      THEN APPROVE
+      ELSE REJECT "Invalid ICD-10 diagnosis code format"
+      END
+    response: |
+      ```dsl
+      RULE icd10_validation
+      WHEN diagnosis.code MATCHES "^[A-Z][0-9]{2}\.[0-9X]{1,4}$"
+      THEN APPROVE
+      ELSE REJECT "Invalid ICD-10 diagnosis code format"
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate"
+
+  - prompt: "Generate a DSL rule to check for duplicate claims within 30 days"
+    description: "Duplicate claim detection within a time window"
+    dsl_pattern: |
+      RULE duplicate_claim_check
+      WHEN EXISTS claim WHERE 
+        claim.patient_id == current.patient_id AND
+        claim.procedure_code == current.procedure_code AND
+        claim.date > (current.date - 30 days)
+      THEN REJECT "Duplicate claim detected within 30 days"
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE duplicate_claim_check
+      WHEN EXISTS claim WHERE 
+        claim.patient_id == current.patient_id AND
+        claim.procedure_code == current.procedure_code AND
+        claim.date > (current.date - 30 days)
+      THEN REJECT "Duplicate claim detected within 30 days"
+      ELSE APPROVE
+      END
+      ```
+    category: "fraud_detection"
+    complexity: "intermediate"
+
+  - prompt: "Create a DSL rule to validate provider credentials and licensing"
+    description: "Provider credential validation for medical claims"
+    dsl_pattern: |
+      RULE provider_credential_check
+      WHEN provider.license_status == "active" AND
+           provider.specialty MATCHES diagnosis.required_specialty AND
+           provider.credential_expiry > current_date
+      THEN APPROVE
+      ELSE REJECT "Provider credentials invalid or expired"
+      END
+    response: |
+      ```dsl
+      RULE provider_credential_check
+      WHEN provider.license_status == "active" AND
+           provider.specialty MATCHES diagnosis.required_specialty AND
+           provider.credential_expiry > current_date
+      THEN APPROVE
+      ELSE REJECT "Provider credentials invalid or expired"
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate"
+
+  - prompt: "Generate a DSL rule to calculate co-pay amounts based on insurance plan"
+    description: "Co-pay calculation based on insurance plan type"
+    dsl_pattern: |
+      RULE copay_calculation
+      WHEN patient.plan_type == "premium"
+      THEN SET copay_amount = claim.amount * 0.1
+      WHEN patient.plan_type == "standard"
+      THEN SET copay_amount = claim.amount * 0.2
+      WHEN patient.plan_type == "basic"
+      THEN SET copay_amount = claim.amount * 0.3
+      ELSE SET copay_amount = claim.amount * 0.5
+      END
+    response: |
+      ```dsl
+      RULE copay_calculation
+      WHEN patient.plan_type == "premium"
+      THEN SET copay_amount = claim.amount * 0.1
+      WHEN patient.plan_type == "standard"
+      THEN SET copay_amount = claim.amount * 0.2
+      WHEN patient.plan_type == "basic"
+      THEN SET copay_amount = claim.amount * 0.3
+      ELSE SET copay_amount = claim.amount * 0.5
+      END
+      ```
+    category: "calculation"
+    complexity: "basic"
+
+  - prompt: "Create a DSL rule to validate pre-authorization requirements"
+    description: "Pre-authorization validation for expensive procedures"
+    dsl_pattern: |
+      RULE preauth_validation
+      WHEN claim.amount > 5000 AND procedure.requires_preauth == true
+      THEN 
+        IF preauth.approved == true AND preauth.expiry_date > claim.date
+        THEN APPROVE
+        ELSE REJECT "Pre-authorization required but not approved or expired"
+        END
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE preauth_validation
+      WHEN claim.amount > 5000 AND procedure.requires_preauth == true
+      THEN 
+        IF preauth.approved == true AND preauth.expiry_date > claim.date
+        THEN APPROVE
+        ELSE REJECT "Pre-authorization required but not approved or expired"
+        END
+      ELSE APPROVE
+      END
+      ```
+    category: "validation"
+    complexity: "advanced"
+
+  - prompt: "Generate a DSL rule to detect unusual billing patterns"
+    description: "Anomaly detection for suspicious billing patterns"
+    dsl_pattern: |
+      RULE billing_anomaly_detection
+      WHEN provider.avg_claim_amount * 3 < claim.amount OR
+           provider.daily_claims_count > 50 OR
+           claim.amount > provider.historical_max * 2
+      THEN FLAG "Unusual billing pattern detected" AND
+           SET review_required = true
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE billing_anomaly_detection
+      WHEN provider.avg_claim_amount * 3 < claim.amount OR
+           provider.daily_claims_count > 50 OR
+           claim.amount > provider.historical_max * 2
+      THEN FLAG "Unusual billing pattern detected" AND
+           SET review_required = true
+      ELSE APPROVE
+      END
+      ```
+    category: "fraud_detection"
+    complexity: "advanced"
+
+  - prompt: "Create a DSL rule to validate claim submission timing"
+    description: "Claim submission timing validation"
+    dsl_pattern: |
+      RULE claim_timing_validation
+      WHEN claim.submission_date > (claim.service_date + 365 days)
+      THEN REJECT "Claim submitted more than 1 year after service date"
+      WHEN claim.submission_date < claim.service_date
+      THEN REJECT "Claim submitted before service date"
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE claim_timing_validation
+      WHEN claim.submission_date > (claim.service_date + 365 days)
+      THEN REJECT "Claim submitted more than 1 year after service date"
+      WHEN claim.submission_date < claim.service_date
+      THEN REJECT "Claim submitted before service date"
+      ELSE APPROVE
+      END
+      ```
+    category: "validation"
+    complexity: "basic"
+
+  - prompt: "Generate a DSL rule to apply benefit limits and deductibles"
+    description: "Benefit limit and deductible application"
+    dsl_pattern: |
+      RULE benefit_deductible_calculation
+      WHEN patient.deductible_remaining > 0
+      THEN 
+        IF claim.amount <= patient.deductible_remaining
+        THEN SET patient_responsibility = claim.amount AND
+             SET insurance_payment = 0 AND
+             SET patient.deductible_remaining = patient.deductible_remaining - claim.amount
+        ELSE SET patient_responsibility = patient.deductible_remaining AND
+             SET insurance_payment = claim.amount - patient.deductible_remaining AND
+             SET patient.deductible_remaining = 0
+        END
+      ELSE SET insurance_payment = claim.amount AND
+           SET patient_responsibility = 0
+      END
+    response: |
+      ```dsl
+      RULE benefit_deductible_calculation
+      WHEN patient.deductible_remaining > 0
+      THEN 
+        IF claim.amount <= patient.deductible_remaining
+        THEN SET patient_responsibility = claim.amount AND
+             SET insurance_payment = 0 AND
+             SET patient.deductible_remaining = patient.deductible_remaining - claim.amount
+        ELSE SET patient_responsibility = patient.deductible_remaining AND
+             SET insurance_payment = claim.amount - patient.deductible_remaining AND
+             SET patient.deductible_remaining = 0
+        END
+      ELSE SET insurance_payment = claim.amount AND
+           SET patient_responsibility = 0
+      END
+      ```
+    category: "calculation"
+    complexity: "advanced"

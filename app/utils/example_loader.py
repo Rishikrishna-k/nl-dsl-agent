@@ -3,6 +3,7 @@ import re
 import yaml
 import json
 from typing import List, Dict, Any, Optional
+from app.context.context import Context
 
 EXAMPLES_BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..')
 CORE_EXAMPLES_DIR = os.path.join(EXAMPLES_BASE_DIR, 'examples', 'core_examples')

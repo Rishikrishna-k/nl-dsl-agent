@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  dsl-codegen:
+    build: .
+    container_name: dsl-codegen
+    ports:
+      - "8003:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - DEBUG=${DEBUG:-false}
+    env_file:
+      - .env
+    volumes:
+      # Mount examples and grammars for easy updates
+      - ./examples:/app/examples:ro
+      - ./grammars:/app/grammars:ro
+      # Mount logs directory for persistence
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dsl-network
+
+  # Optional: Add a development service with hot reload
+  dsl-codegen-dev:
+    build: .
+    container_name: dsl-codegen-dev
+    ports:
+      - "8004:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - DEBUG=true
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for development
+      - .:/app
+      - /app/__pycache__
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+    profiles:
+      - dev
+
+networks:
+  dsl-network:
+    driver: bridge 

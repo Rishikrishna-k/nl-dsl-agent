@@ -1,3 +1,9 @@
+from app.context.context import Context
+from agents.langchain.code_generator_agent import CodeGeneratorAgent
+from agents.langchain.code_validator_agent import CodeValidatorAgent
+from agents.langchain.langchain_agent import LangChainAgent
+from app.openrouter_client import OpenRouterClient  # if this class exists
+
 try:
     import fastapi
     print("fastapi: OK")

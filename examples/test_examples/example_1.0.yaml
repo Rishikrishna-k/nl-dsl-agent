@@ -1,0 +1,268 @@
+examples:
+  - prompt: "Create a DSL rule to validate network provider requirements"
+    description: "Network provider validation for in-network benefits"
+    dsl_pattern: |
+      RULE network_provider_check
+      WHEN provider.network_status == "in_network" AND patient.plan_type IN ["ppo", "hmo"]
+      THEN SET copay_percentage = 0.1
+      WHEN provider.network_status == "out_network" AND patient.plan_type == "ppo"
+      THEN SET copay_percentage = 0.3
+      ELSE REJECT "Out-of-network provider not covered for HMO plan"
+      END
+    response: |
+      ```dsl
+      RULE network_provider_check
+      WHEN provider.network_status == "in_network" AND patient.plan_type IN ["ppo", "hmo"]
+      THEN SET copay_percentage = 0.1
+      WHEN provider.network_status == "out_network" AND patient.plan_type == "ppo"
+      THEN SET copay_percentage = 0.3
+      ELSE REJECT "Out-of-network provider not covered for HMO plan"
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate"
+
+  - prompt: "Generate a DSL rule to check for medical necessity of procedures"
+    description: "Medical necessity validation based on diagnosis and procedure"
+    dsl_pattern: |
+      RULE medical_necessity_check
+      WHEN procedure.code IN diagnosis.approved_procedures OR
+           EXISTS medical_guideline WHERE 
+             guideline.diagnosis == diagnosis.code AND
+             guideline.procedure == procedure.code AND
+             guideline.approved == true
+      THEN APPROVE
+      ELSE REJECT "Procedure not medically necessary for diagnosis"
+      END
+    response: |
+      ```dsl
+      RULE medical_necessity_check
+      WHEN procedure.code IN diagnosis.approved_procedures OR
+           EXISTS medical_guideline WHERE 
+             guideline.diagnosis == diagnosis.code AND
+             guideline.procedure == procedure.code AND
+             guideline.approved == true
+      THEN APPROVE
+      ELSE REJECT "Procedure not medically necessary for diagnosis"
+      END
+      ```
+    category: "validation"
+    complexity: "advanced"
+
+  - prompt: "Create a DSL rule to validate claim line item details"
+    description: "Line item validation for claim details"
+    dsl_pattern: |
+      RULE line_item_validation
+      FOR EACH line_item IN claim.line_items
+      WHEN line_item.quantity > 0 AND
+           line_item.unit_price > 0 AND
+           line_item.total_amount == (line_item.quantity * line_item.unit_price)
+      THEN CONTINUE
+      ELSE REJECT "Invalid line item: quantity, price, or total amount error"
+      END
+    response: |
+      ```dsl
+      RULE line_item_validation
+      FOR EACH line_item IN claim.line_items
+      WHEN line_item.quantity > 0 AND
+           line_item.unit_price > 0 AND
+           line_item.total_amount == (line_item.quantity * line_item.unit_price)
+      THEN CONTINUE
+      ELSE REJECT "Invalid line item: quantity, price, or total amount error"
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate"
+
+  - prompt: "Generate a DSL rule to apply age-based coverage restrictions"
+    description: "Age-based coverage validation for procedures"
+    dsl_pattern: |
+      RULE age_coverage_restriction
+      WHEN patient.age < 18 AND procedure.age_restriction == "adult_only"
+      THEN REJECT "Procedure not covered for patients under 18"
+      WHEN patient.age > 65 AND procedure.age_restriction == "pediatric_only"
+      THEN REJECT "Procedure not covered for patients over 65"
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE age_coverage_restriction
+      WHEN patient.age < 18 AND procedure.age_restriction == "adult_only"
+      THEN REJECT "Procedure not covered for patients under 18"
+      WHEN patient.age > 65 AND procedure.age_restriction == "pediatric_only"
+      THEN REJECT "Procedure not covered for patients over 65"
+      ELSE APPROVE
+      END
+      ```
+    category: "validation"
+    complexity: "basic"
+
+  - prompt: "Create a DSL rule to validate claim attachments and documentation"
+    description: "Documentation requirement validation for claims"
+    dsl_pattern: |
+      RULE documentation_validation
+      WHEN claim.amount > 1000 OR procedure.requires_documentation == true
+      THEN 
+        IF EXISTS attachment WHERE attachment.type IN ["medical_record", "prescription", "referral"]
+        THEN APPROVE
+        ELSE REJECT "Required documentation missing for high-value claim"
+        END
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE documentation_validation
+      WHEN claim.amount > 1000 OR procedure.requires_documentation == true
+      THEN 
+        IF EXISTS attachment WHERE attachment.type IN ["medical_record", "prescription", "referral"]
+        THEN APPROVE
+        ELSE REJECT "Required documentation missing for high-value claim"
+        END
+      ELSE APPROVE
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate"
+
+  - prompt: "Generate a DSL rule to calculate out-of-pocket maximums"
+    description: "Out-of-pocket maximum calculation and application"
+    dsl_pattern: |
+      RULE out_of_pocket_calculation
+      WHEN patient.out_of_pocket_used >= patient.out_of_pocket_maximum
+      THEN SET patient_responsibility = 0 AND
+           SET insurance_payment = claim.amount
+      WHEN (patient.out_of_pocket_used + copay_amount) > patient.out_of_pocket_maximum
+      THEN SET patient_responsibility = patient.out_of_pocket_maximum - patient.out_of_pocket_used AND
+           SET insurance_payment = claim.amount - patient_responsibility
+      ELSE SET patient_responsibility = copay_amount AND
+           SET insurance_payment = claim.amount - copay_amount
+      END
+    response: |
+      ```dsl
+      RULE out_of_pocket_calculation
+      WHEN patient.out_of_pocket_used >= patient.out_of_pocket_maximum
+      THEN SET patient_responsibility = 0 AND
+           SET insurance_payment = claim.amount
+      WHEN (patient.out_of_pocket_used + copay_amount) > patient.out_of_pocket_maximum
+      THEN SET patient_responsibility = patient.out_of_pocket_maximum - patient.out_of_pocket_used AND
+           SET insurance_payment = claim.amount - patient_responsibility
+      ELSE SET patient_responsibility = copay_amount AND
+           SET insurance_payment = claim.amount - copay_amount
+      END
+      ```
+    category: "calculation"
+    complexity: "advanced"
+
+  - prompt: "Create a DSL rule to detect upcoding and unbundling fraud"
+    description: "Fraud detection for upcoding and unbundling practices"
+    dsl_pattern: |
+      RULE upcoding_unbundling_detection
+      WHEN procedure.code IN ["99215", "99214"] AND diagnosis.severity == "low" OR
+           EXISTS line_item WHERE line_item.code IN procedure.bundled_codes AND
+           line_item.date == claim.date
+      THEN FLAG "Potential upcoding or unbundling detected" AND
+           SET manual_review = true AND
+           SET fraud_score = fraud_score + 50
+      ELSE CONTINUE
+      END
+    response: |
+      ```dsl
+      RULE upcoding_unbundling_detection
+      WHEN procedure.code IN ["99215", "99214"] AND diagnosis.severity == "low" OR
+           EXISTS line_item WHERE line_item.code IN procedure.bundled_codes AND
+           line_item.date == claim.date
+      THEN FLAG "Potential upcoding or unbundling detected" AND
+           SET manual_review = true AND
+           SET fraud_score = fraud_score + 50
+      ELSE CONTINUE
+      END
+      ```
+    category: "fraud_detection"
+    complexity: "advanced"
+
+  - prompt: "Generate a DSL rule to validate claim frequency limits"
+    description: "Frequency limit validation for procedures"
+    dsl_pattern: |
+      RULE frequency_limit_check
+      WHEN procedure.frequency_limit > 0
+      THEN 
+        IF COUNT claim WHERE claim.procedure_code == current.procedure_code AND
+             claim.patient_id == current.patient_id AND
+             claim.date >= (current.date - 365 days) >= procedure.frequency_limit
+        THEN REJECT "Frequency limit exceeded for procedure"
+        ELSE APPROVE
+        END
+      ELSE APPROVE
+      END
+    response: |
+      ```dsl
+      RULE frequency_limit_check
+      WHEN procedure.frequency_limit > 0
+      THEN 
+        IF COUNT claim WHERE claim.procedure_code == current.procedure_code AND
+             claim.patient_id == current.patient_id AND
+             claim.date >= (current.date - 365 days) >= procedure.frequency_limit
+        THEN REJECT "Frequency limit exceeded for procedure"
+        ELSE APPROVE
+        END
+      ELSE APPROVE
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate"
+
+  - prompt: "Create a DSL rule to apply benefit year calculations"
+    description: "Benefit year calculation and reset logic"
+    dsl_pattern: |
+      RULE benefit_year_calculation
+      WHEN claim.date >= patient.benefit_year_start + 365 days
+      THEN SET patient.benefit_year_start = claim.date AND
+           SET patient.deductible_used = 0 AND
+           SET patient.out_of_pocket_used = 0 AND
+           SET patient.claims_count = 0
+      ELSE CONTINUE
+      END
+    response: |
+      ```dsl
+      RULE benefit_year_calculation
+      WHEN claim.date >= patient.benefit_year_start + 365 days
+      THEN SET patient.benefit_year_start = claim.date AND
+           SET patient.deductible_used = 0 AND
+           SET patient.out_of_pocket_used = 0 AND
+           SET patient.claims_count = 0
+      ELSE CONTINUE
+      END
+      ```
+    category: "calculation"
+    complexity: "basic"
+
+  - prompt: "Generate a DSL rule to validate claim status transitions"
+    description: "Claim status transition validation"
+    dsl_pattern: |
+      RULE status_transition_validation
+      WHEN claim.current_status == "pending" AND action == "approve"
+      THEN SET claim.status = "approved" AND
+           SET claim.approval_date = current_date
+      WHEN claim.current_status == "pending" AND action == "reject"
+      THEN SET claim.status = "rejected" AND
+           SET claim.rejection_date = current_date
+      WHEN claim.current_status == "approved" AND action == "reject"
+      THEN REJECT "Cannot reject an already approved claim"
+      ELSE REJECT "Invalid status transition"
+      END
+    response: |
+      ```dsl
+      RULE status_transition_validation
+      WHEN claim.current_status == "pending" AND action == "approve"
+      THEN SET claim.status = "approved" AND
+           SET claim.approval_date = current_date
+      WHEN claim.current_status == "pending" AND action == "reject"
+      THEN SET claim.status = "rejected" AND
+           SET claim.rejection_date = current_date
+      WHEN claim.current_status == "approved" AND action == "reject"
+      THEN REJECT "Cannot reject an already approved claim"
+      ELSE REJECT "Invalid status transition"
+      END
+      ```
+    category: "validation"
+    complexity: "intermediate" 
